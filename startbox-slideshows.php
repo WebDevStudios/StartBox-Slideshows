@@ -378,10 +378,10 @@ function sb_slideshow_sortable_item( $index ) {
 			<a href="#" class="move-to-slides"><?php _e( 'Add Slide', 'startbox' ); ?></a>
 		</div>
 		<?php echo $slide['image']; ?>
-		<textarea name="slide[<?php echo esc_attr( $index ); ?>][post_content]"><?php echo $post->post_content; ?></textarea>
-		<label for="slide-link-<?php echo $index; ?>"><?php _e( 'Link to:', 'startbox' ); ?></label>
-		<input type="text" class="slide-link" name="slide[<?php echo esc_attr( $index ); ?>][post_excerpt]" id="slide-link-<?php echo $index; ?>"
-			value="<?php echo esc_attr( ($post->post_excerpt != '' ? $post->post_excerpt : $sb_slideshow_interface['link_text']) ); ?>" />
+		<textarea name="slide[<?php echo esc_attr( $index ); ?>][post_content]"><?php echo esc_textarea( $post->post_content ); ?></textarea>
+		<label for="slide-link-<?php echo esc_attr( $index ); ?>"><?php _e( 'Link to:', 'startbox' ); ?></label>
+		<input type="text" class="slide-link" name="slide[<?php echo esc_attr( $index ); ?>][post_excerpt]" id="slide-link-<?php echo esc_attr( $index ); ?>"
+			value="<?php echo esc_attr( ($post->post_excerpt != '' ? $post->post_excerpt : esc_url( $sb_slideshow_interface['link_text'] ) ) ); ?>" />
 		<input type="hidden" name="slide[<?php echo esc_attr( $index ); ?>][attachment_id]"
 			value="<?php echo esc_attr( $post->ID ); ?>" />
 		<input type="hidden" name="slide[<?php echo esc_attr( $index ); ?>][box]" class="sb_box"
@@ -501,61 +501,64 @@ function sb_slideshow_shortcode( $atts, $content = NULL ) {
 		break;
 	}
 
-	if($ssorri == 'slideshow_on'){
+	if( $ssorri == 'slideshow_on' ) {
 
-	// get and sort all slides stored as post meta records
-	$slides = get_post_meta( $id, 'slide', false ); // set single (third parameter) to false to pull ALL records with key "slide"
-	usort( $slides, 'sb_slideshow_slide_sort' ); // order the elements of the array
+		// get and sort all slides stored as post meta records
+		$slides = get_post_meta( $id, 'slide', false ); // set single (third parameter) to false to pull ALL records with key "slide"
+		usort( $slides, 'sb_slideshow_slide_sort' ); // order the elements of the array
 
-	// add javascript to be output in the footer (safer than outputing in the content area)
-	global $sb_slideshow_footer_javascript, $sb_slideshow_interface;
-	$id = sb_slideshow_verify_id( $id ); // need to do this to allow for the same slideshow to be embedded multiple times on one page
-	$controlNav = in_array( 'navigation', $control );
-	$sb_slideshow_footer_javascript .= apply_filters(
-		'sb_slideshow_footer_javascript',
-		'$("#slider-' . $id . '").nivoSlider({
-			effect:"' . ($effect == '' ? 'random' : implode( ',', $effect )) . '",
-			pauseTime:' . ($pause == '' ? $sb_slideshow_interface['pause'] : $pause) . ',
-			captionOpacity: ' . ($opacity == '' ? $sb_slideshow_interface['opacity'] : $opacity) . ',
-			directionNav:' . (in_array( 'arrows', $control ) ? 'true' : 'false') . ',
-			controlNav:' . ($controlNav ? 'true' : 'false') . '
-		});', $id, $effect, $pause, $control, $opacity );
+		// add javascript to be output in the footer (safer than outputing in the content area)
+		global $sb_slideshow_footer_javascript, $sb_slideshow_interface;
+		$id = sb_slideshow_verify_id( $id ); // need to do this to allow for the same slideshow to be embedded multiple times on one page
+		$controlNav = in_array( 'navigation', $control );
+		$sb_slideshow_footer_javascript .= apply_filters(
+			'sb_slideshow_footer_javascript',
+			'$("#slider-' . $id . '").nivoSlider({
+				effect:"' . ($effect == '' ? 'random' : implode( ',', $effect )) . '",
+				pauseTime:' . ($pause == '' ? $sb_slideshow_interface['pause'] : $pause) . ',
+				captionOpacity: ' . ($opacity == '' ? $sb_slideshow_interface['opacity'] : $opacity) . ',
+				directionNav:' . (in_array( 'arrows', $control ) ? 'true' : 'false') . ',
+				controlNav:' . ($controlNav ? 'true' : 'false') . '
+			});', $id, $effect, $pause, $control, $opacity );
 
-	// create the code for the slideshow
-	$result = '';
-	$result .= '<div class="slider-wrapper' . ($controlNav ? ' with-controlNav' : '') . '" style="width:' . absint( $dimensions['width'] ) . 'px;">
-		<div class="slider" id="slider-' . $id . '">';
+		// create the code for the slideshow
+		$result = '';
+		$result .= '<div class="slider-wrapper' . ($controlNav ? ' with-controlNav' : '') . '" style="width:' . absint( $dimensions['width'] ) . 'px;">
+			<div class="slider" id="slider-' . $id . '">';
 
-	foreach( $slides as $slide ) {
+		foreach( $slides as $slide ) {
 
-		$attachment = get_post( $slide['attachment_id'] );
-		$description = $attachment->post_content;
-		if ($attachment->post_excerpt != '') $result .= '<a href="' . esc_url( $attachment->post_excerpt ) . '">';
-		$result .= '<img src="' . sb_get_post_image_url( array( 'width' => $dimensions['width'], 'height' => $dimensions['height'], 'image_id' 	=> $slide['attachment_id'], 'echo' 	=> false ) ) . '" width="' .  $dimensions['width'] . '" height="' .  $dimensions['height'] . '" alt="' . esc_attr($description) . '" title="' . esc_attr($description) .'" />';
-		if ($attachment->post_excerpt != '') $result .= '</a>';
-		
-	}
-	$result .= '</div></div>';
+			$attachment = get_post( $slide['attachment_id'] );
+			$description = $attachment->post_content;
+			if ( $attachment->post_excerpt != '' ) $result .= '<a href="' . esc_url( $attachment->post_excerpt ) . '">';
+			$result .= '<img src="' . sb_get_post_image_url( array( 'width' => $dimensions['width'], 'height' => $dimensions['height'], 'image_id' 	=> $slide['attachment_id'], 'echo' 	=> false ) ) . '" width="' .  $dimensions['width'] . '" height="' .  $dimensions['height'] . '" alt="' . esc_attr($description) . '" title="' . esc_attr($description) .'" />';
+			if ( $attachment->post_excerpt != '' ) $result .= '</a>';
 
-	return apply_filters( 'sb_slideshow_result', $result, $id, $dimensions, $control, $slides ); // finally, output the resulting code
+		}
+		$result .= '</div></div>';
+
+		return apply_filters( 'sb_slideshow_result', $result, $id, $dimensions, $control, $slides ); // finally, output the resulting code
 
 	} else {
-		$slides = get_post_meta($id, 'slide', false);
-	//usort($slides, 'sb_slide_sort'); // order the elements of the array
-	$total = count($slides);
-	$random = (mt_rand()%$total);
-	$slide = $slides[$random];
+		
+		$slides = get_post_meta( $id, 'slide', false );
+		//usort($slides, 'sb_slide_sort'); // order the elements of the array
+		$total = count($slides);
+		$random = (mt_rand()%$total);
+		$slide = $slides[$random];
 
-	$result = '';
-	$result .= '<div class="slider_wrapper" style="width:' . absint( $dimensions['width'] ) . 'px">';
-	$result .= '<img src="' . sb_get_post_image_url( array( 'width' => $dimensions['width'], 'height' => $dimensions['height'], 'image_id' 	=> $slide['attachment_id'], 'echo' 	=> false ) ) . '" width="' .  $dimensions['width'] . '" height="' .  $dimensions['height'] . '" alt="' . esc_attr($description) . '" title="' . esc_attr($description) .'" />';
-	$result .= '<span class="slide_caption">'.$slide['caption'].'</span>';
-	$result .= '</div>';
+		$result = '';
+		$result .= '<div class="slider_wrapper" style="width:' . absint( $dimensions['width'] ) . 'px">';
+		$result .= '<img src="' . sb_get_post_image_url( array( 'width' => $dimensions['width'], 'height' => $dimensions['height'], 'image_id' 	=> $slide['attachment_id'], 'echo' 	=> false ) ) . '" width="' .  $dimensions['width'] . '" height="' .  $dimensions['height'] . '" alt="' . esc_attr($description) . '" title="' . esc_attr($description) .'" />';
+		$result .= '<span class="slide_caption">'.$slide['caption'].'</span>';
+		$result .= '</div>';
 
-	$result .= '';
+		$result .= '';
 
-	return $result;
+		return $result;
+		
 	}
+	
 }
 
 add_shortcode( 'slideshow', 'sb_slideshow_shortcode' );
